@@ -82,11 +82,11 @@ if st.button("Fetch and Display PDF Summaries"):
             mail_id_list = data[0].split()
 
             # Clear info_list before processing emails
-            info_list = []
+            info_list.clear()
 
             # Function to process each email
             def process_email(num):
-                nonlocal info_list
+                info_list_local = []
                 typ, data = my_mail.fetch(num, '(RFC822)')
                 msg = email.message_from_bytes(data[0][1])
 
@@ -104,7 +104,10 @@ if st.button("Fetch and Display PDF Summaries"):
                             summary = summarize_text_t5(chapter_text)
 
                             info = {"Summarized Content": summary, "Received Date": email_date, "Chapter": chapter_num}
-                            info_list.append(info)
+                            info_list_local.append(info)
+
+                # Extend the global list with the local list
+                info_list.extend(info_list_local)
 
             # Parallelize the processing of emails
             with ThreadPoolExecutor() as executor:
