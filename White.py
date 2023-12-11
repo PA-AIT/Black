@@ -130,9 +130,3 @@ if st.button("Fetch and Display PDF Summaries"):
 
     except Exception as e:
         st.error(f"An error occurred during IMAP connection: {str(e)}")
-
-    try:
-        # Explicitly close the IMAP connection
-        my_mail.logout()
-    except Exception as logout_error:
-        st.warning(f"Error during logout: {logout_error}")
