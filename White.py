@@ -56,7 +56,11 @@ def summarize_text_t5(text):
 
 # Convert date format for IMAP search
 try:
-    imap_date_format = pd.to_datetime(selected_date).strftime("%d-%b-%Y").upper()
+    if pd.notna(selected_date):
+        imap_date_format = pd.to_datetime(selected_date).strftime("%d-%b-%Y").upper()
+    else:
+        st.error("Selected date is not valid. Please enter a valid date.")
+        st.stop()
 except Exception as e:
     st.error(f"Error converting date format: {str(e)}")
     st.stop()
