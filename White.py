@@ -122,15 +122,4 @@ if st.button("Fetch and Display PDF Summaries"):
             # Download button
             if st.button("Download Summaries as Text File"):
                 summary_text = "\n\n".join(f"Chapter {info['Chapter']} - Received Date: {info['Received Date']}\n{info['Summarized Content']}" for info in info_list)
-                st.download_button(
-                    label="Download Summaries",
-                    data=summary_text,
-                    key="download_summaries_txt",
-                    file_name="summaries.txt",
-                )
-
-    except Exception as e:
-        st.error(f"An error occurred during IMAP connection: {str(e)}")
-        st.error(f"IMAP server response: {my_mail.response('')}")  # Capture the server response
-
-# ... (other code remains unchanged)
+               
