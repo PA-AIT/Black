@@ -63,11 +63,8 @@ except Exception as e:
 
 if st.button("Fetch and Display PDF Summaries"):
     try:
-        # URL for IMAP connection
-        imap_url = 'imap.gmail.com'
-
         # Connection with GMAIL using SSL
-        with imaplib.IMAP4_SSL(imap_url) as my_mail:
+        with imaplib.IMAP4_SSL('imap.gmail.com') as my_mail:
             # Log in using user and password
             my_mail.login(user, password)
 
@@ -130,3 +127,6 @@ if st.button("Fetch and Display PDF Summaries"):
 
     except Exception as e:
         st.error(f"An error occurred during IMAP connection: {str(e)}")
+        st.error(f"IMAP server response: {my_mail.response('')}")  # Capture the server response
+
+# ... (other code remains unchanged)
