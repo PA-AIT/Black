@@ -25,6 +25,9 @@ selected_date = st.text_input("Enter the date (YYYY-MM-DD) to filter emails")
 model = T5ForConditionalGeneration.from_pretrained('t5-small')
 tokenizer = T5Tokenizer.from_pretrained('t5-small')
 
+# Initialize info_list as a global variable
+info_list = []
+
 # Function to extract chapters from PDF using PyMuPDF
 def extract_chapters_from_pdf(pdf_bytes):
     pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -78,6 +81,7 @@ if st.button("Fetch and Display PDF Summaries"):
 
             mail_id_list = data[0].split()
 
+            # Clear info_list before processing emails
             info_list = []
 
             # Function to process each email
