@@ -65,72 +65,74 @@ except Exception as e:
     st.error(f"Error converting date format: {str(e)}")
     st.stop()
 
-if st.button("Fetch and Display PDF Summaries"):
+try:
+    # Connection with GMAIL using SSL
+    with imaplib.IMAP4_SSL('imap.gmail.com') as my_mail:
+        # Log in using user and password
+        my_mail.login(user, password)
+
+        # Select the Inbox to fetch messages
+        my_mail.select('inbox')
+
+        # Define the key and value for email search
+        key = 'SINCE'
+        value = imap_date_format  # Use the user-specified date to search
+        _, data = my_mail.search(None, key, value)
+
+        mail_id_list = data[0].split()
+
+        # Clear info_list before processing emails
+        info_list.clear()
+
+        # Function to process each email
+        def process_email(num):
+            info_list_local = []
+            typ, data = my_mail.fetch(num, '(RFC822)')
+            msg = email.message_from_bytes(data[0][1])
+
+            for part in msg.walk():
+                if part.get_content_type() == 'application/pdf':
+                    # Extract email date
+                    email_date = msg["Date"]
+
+                    # Extract chapters from PDF using PyMuPDF
+                    pdf_bytes = part.get_payload(decode=True)
+                    chapters = extract_chapters_from_pdf(pdf_bytes)
+
+                    for chapter_num, chapter_text in enumerate(chapters, start=1):
+                        # Summarize each chapter using T5 model
+                        summary = summarize_text_t5(chapter_text)
+
+                        info = {"Summarized Content": summary, "Received Date": email_date, "Chapter": chapter_num}
+                        info_list_local.append(info)
+
+            # Extend the global list with the local list
+            info_list.extend(info_list_local)
+
+        # Parallelize the processing of emails
+        with ThreadPoolExecutor() as executor:
+            executor.map(process_email, mail_id_list)
+
+        # Display the summarized content
+        for info in info_list:
+            st.subheader(f"Chapter {info['Chapter']} - Received Date: {info['Received Date']}")
+            st.write(info["Summarized Content"])
+
+        # Download button
+        if st.button("Download Summaries as Text File"):
+            summary_text = "\n\n".join(f"Chapter {info['Chapter']} - Received Date: {info['Received Date']}\n{info['Summarized Content']}" for info in info_list)
+            st.download_button(
+                label="Download Summaries",
+                data=summary_text,
+                key="download_summaries_txt",
+                file_name="summaries.txt",
+            )
+
+except Exception as e:
+    st.error(f"An error occurred during IMAP connection: {str(e)}")
+    st.error(f"IMAP server response: {my_mail.response('')}")
+finally:
     try:
-        # Connection with GMAIL using SSL
-        with imaplib.IMAP4_SSL('imap.gmail.com') as my_mail:
-            # Log in using user and password
-            my_mail.login(user, password)
-
-            # Select the Inbox to fetch messages
-            my_mail.select('inbox')
-
-            # Define the key and value for email search
-            key = 'SINCE'
-            value = imap_date_format  # Use the user-specified date to search
-            _, data = my_mail.search(None, key, value)
-
-            mail_id_list = data[0].split()
-
-            # Clear info_list before processing emails
-            info_list.clear()
-
-            # Function to process each email
-            def process_email(num):
-                info_list_local = []
-                typ, data = my_mail.fetch(num, '(RFC822)')
-                msg = email.message_from_bytes(data[0][1])
-
-                for part in msg.walk():
-                    if part.get_content_type() == 'application/pdf':
-                        # Extract email date
-                        email_date = msg["Date"]
-
-                        # Extract chapters from PDF using PyMuPDF
-                        pdf_bytes = part.get_payload(decode=True)
-                        chapters = extract_chapters_from_pdf(pdf_bytes)
-
-                        for chapter_num, chapter_text in enumerate(chapters, start=1):
-                            # Summarize each chapter using T5 model
-                            summary = summarize_text_t5(chapter_text)
-
-                            info = {"Summarized Content": summary, "Received Date": email_date, "Chapter": chapter_num}
-                            info_list_local.append(info)
-
-                # Extend the global list with the local list
-                info_list.extend(info_list_local)
-
-            # Parallelize the processing of emails
-            with ThreadPoolExecutor() as executor:
-                executor.map(process_email, mail_id_list)
-
-            # Display the summarized content
-            for info in info_list:
-                st.subheader(f"Chapter {info['Chapter']} - Received Date: {info['Received Date']}")
-                st.write(info["Summarized Content"])
-
-            # Download button
-            if st.button("Download Summaries as Text File"):
-                summary_text = "\n\n".join(f"Chapter {info['Chapter']} - Received Date: {info['Received Date']}\n{info['Summarized Content']}" for info in info_list)
-                st.download_button(
-                    label="Download Summaries",
-                    data=summary_text,
-                    key="download_summaries_txt",
-                    file_name="summaries.txt",
-                )
-
+        my_mail.logout()
     except Exception as e:
-        st.error(f"An error occurred during IMAP connection: {str(e)}")
-        st.error(f"IMAP server response: {my_mail.response('')}")  # Capture the server response
-
-
+        st.error(f"Error during logout: {str(e)}")
